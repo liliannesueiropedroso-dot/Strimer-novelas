@@ -1,0 +1,6 @@
+{
+  "name": "NovelaStream - Novelas Verticales",
+  "description": "Plataforma cinematográfica de microdramas y novelas verticales con streaming rápido, desbloqueo de episodios y panel de administración.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

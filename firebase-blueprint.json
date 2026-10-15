@@ -1,0 +1,170 @@
+{
+  "entities": {
+    "Novel": {
+      "title": "Novel",
+      "description": "A vertical drama series or web novel with multiple video episodes",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "maxLength": 150 },
+        "synopsis": { "type": "string", "maxLength": 2000 },
+        "coverUrl": { "type": "string", "maxLength": 1000 },
+        "bannerUrl": { "type": "string", "maxLength": 1000 },
+        "status": { "type": "string", "enum": ["airing", "completed", "upcoming"] },
+        "genres": { "type": "array" },
+        "tags": { "type": "array" },
+        "episodeCount": { "type": "number" },
+        "views": { "type": "number" },
+        "rating": { "type": "number" },
+        "isFeatured": { "type": "boolean" },
+        "isNew": { "type": "boolean" },
+        "isExclusive": { "type": "boolean" },
+        "order": { "type": "number" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["title", "synopsis", "coverUrl", "status"]
+    },
+    "Episode": {
+      "title": "Episode",
+      "description": "An episode in a vertical novel series",
+      "type": "object",
+      "properties": {
+        "novelId": { "type": "string", "maxLength": 128 },
+        "episodeNumber": { "type": "number" },
+        "title": { "type": "string", "maxLength": 150 },
+        "description": { "type": "string", "maxLength": 1000 },
+        "videoUrl": { "type": "string", "maxLength": 2000 },
+        "driveFileId": { "type": "string", "maxLength": 128 },
+        "thumbnail": { "type": "string", "maxLength": 1000 },
+        "durationSec": { "type": "number" },
+        "accessType": { "type": "string", "enum": ["free", "reward_ad", "vip"] },
+        "isPublished": { "type": "boolean" },
+        "scheduledAt": { "type": "string" },
+        "views": { "type": "number" },
+        "likesCount": { "type": "number" },
+        "commentsCount": { "type": "number" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["novelId", "episodeNumber", "title", "videoUrl", "accessType", "isPublished"]
+    },
+    "Comment": {
+      "title": "Comment",
+      "description": "User comment on an episode with moderation flags",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "maxLength": 128 },
+        "userDisplayName": { "type": "string", "maxLength": 100 },
+        "userPhotoUrl": { "type": "string", "maxLength": 1000 },
+        "novelId": { "type": "string", "maxLength": 128 },
+        "episodeId": { "type": "string", "maxLength": 128 },
+        "text": { "type": "string", "maxLength": 1000 },
+        "likesCount": { "type": "number" },
+        "isReported": { "type": "boolean" },
+        "isHidden": { "type": "boolean" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["userId", "userDisplayName", "novelId", "episodeId", "text", "isReported", "isHidden"]
+    },
+    "UserProgress": {
+      "title": "UserProgress",
+      "description": "Playback continuation tracking for a user on a novel",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "maxLength": 128 },
+        "novelId": { "type": "string", "maxLength": 128 },
+        "episodeId": { "type": "string", "maxLength": 128 },
+        "episodeNumber": { "type": "number" },
+        "progressSeconds": { "type": "number" },
+        "totalDurationSeconds": { "type": "number" },
+        "completed": { "type": "boolean" },
+        "lastWatchedAt": { "type": "string" }
+      },
+      "required": ["userId", "novelId", "episodeId", "episodeNumber", "progressSeconds", "completed"]
+    },
+    "UserWatchlist": {
+      "title": "UserWatchlist",
+      "description": "Saved novels in user list",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "maxLength": 128 },
+        "novelId": { "type": "string", "maxLength": 128 },
+        "addedAt": { "type": "string" }
+      },
+      "required": ["userId", "novelId"]
+    },
+    "UnlockedEpisode": {
+      "title": "UnlockedEpisode",
+      "description": "Record of unlocked episodes via rewarded ad or subscription",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "maxLength": 128 },
+        "novelId": { "type": "string", "maxLength": 128 },
+        "episodeId": { "type": "string", "maxLength": 128 },
+        "unlockedVia": { "type": "string", "enum": ["reward_ad", "vip", "free_trial"] },
+        "unlockedAt": { "type": "string" }
+      },
+      "required": ["userId", "novelId", "episodeId", "unlockedVia"]
+    },
+    "AdConfig": {
+      "title": "AdConfig",
+      "description": "Admin configuration for advertising frequencies and placements",
+      "type": "object",
+      "properties": {
+        "interstitialFrequency": { "type": "number" },
+        "bannersEnabled": { "type": "boolean" },
+        "rewardedAdsEnabled": { "type": "boolean" },
+        "updatedAt": { "type": "string" },
+        "updatedBy": { "type": "string", "maxLength": 128 }
+      },
+      "required": ["interstitialFrequency", "bannersEnabled", "rewardedAdsEnabled"]
+    },
+    "AuditLog": {
+      "title": "AuditLog",
+      "description": "Administrative actions audit trail",
+      "type": "object",
+      "properties": {
+        "action": { "type": "string", "maxLength": 100 },
+        "details": { "type": "string", "maxLength": 500 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "userEmail": { "type": "string", "maxLength": 150 },
+        "timestamp": { "type": "string" }
+      },
+      "required": ["action", "userId", "userEmail", "timestamp"]
+    }
+  },
+  "firestore": {
+    "/novels/{novelId}": {
+      "schema": { "$ref": "Novel" },
+      "description": "Public catalog of vertical novels"
+    },
+    "/novels/{novelId}/episodes/{episodeId}": {
+      "schema": { "$ref": "Episode" },
+      "description": "Episodes belonging to a vertical novel"
+    },
+    "/novels/{novelId}/episodes/{episodeId}/comments/{commentId}": {
+      "schema": { "$ref": "Comment" },
+      "description": "Community comments on an episode"
+    },
+    "/users/{userId}/progress/{novelId}": {
+      "schema": { "$ref": "UserProgress" },
+      "description": "User continue-watching progress"
+    },
+    "/users/{userId}/watchlist/{novelId}": {
+      "schema": { "$ref": "UserWatchlist" },
+      "description": "User personal watchlist bookmarks"
+    },
+    "/users/{userId}/unlockedEpisodes/{unlockedId}": {
+      "schema": { "$ref": "UnlockedEpisode" },
+      "description": "Episodes unlocked by the user via rewarded ads"
+    },
+    "/config/{configDoc}": {
+      "schema": { "$ref": "AdConfig" },
+      "description": "Global settings for ads and platform controls"
+    },
+    "/auditLogs/{logId}": {
+      "schema": { "$ref": "AuditLog" },
+      "description": "Administrative audit entries"
+    }
+  }
+}

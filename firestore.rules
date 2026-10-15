@@ -1,0 +1,161 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Global helper primitives
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        (request.auth.token.email == 'reinatorrez001@gmail.com' && request.auth.token.email_verified == true) ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    // Entity validation blueprints
+    function isValidNovel(data) {
+      return data.keys().hasAll(['title', 'synopsis', 'coverUrl', 'status']) &&
+        data.title is string && data.title.size() > 0 && data.title.size() <= 150 &&
+        data.synopsis is string && data.synopsis.size() <= 2000 &&
+        data.coverUrl is string && data.coverUrl.size() <= 1000 &&
+        (data.status == 'airing' || data.status == 'completed' || data.status == 'upcoming');
+    }
+
+    function isValidEpisode(data) {
+      return data.keys().hasAll(['novelId', 'episodeNumber', 'title', 'videoUrl', 'accessType', 'isPublished']) &&
+        data.novelId is string && data.novelId.size() <= 128 &&
+        data.episodeNumber is number &&
+        data.title is string && data.title.size() > 0 && data.title.size() <= 150 &&
+        data.videoUrl is string && data.videoUrl.size() <= 2000 &&
+        (data.accessType == 'free' || data.accessType == 'reward_ad' || data.accessType == 'vip') &&
+        data.isPublished is bool;
+    }
+
+    function isValidComment(data) {
+      return data.keys().hasAll(['userId', 'userDisplayName', 'novelId', 'episodeId', 'text', 'isReported', 'isHidden']) &&
+        data.userId is string && data.userId == request.auth.uid &&
+        data.userDisplayName is string && data.userDisplayName.size() <= 100 &&
+        data.novelId is string && data.novelId.size() <= 128 &&
+        data.episodeId is string && data.episodeId.size() <= 128 &&
+        data.text is string && data.text.size() > 0 && data.text.size() <= 1000 &&
+        data.isReported is bool &&
+        data.isHidden is bool;
+    }
+
+    function isValidProgress(data) {
+      return data.keys().hasAll(['userId', 'novelId', 'episodeId', 'episodeNumber', 'progressSeconds', 'completed']) &&
+        data.userId is string && data.userId == request.auth.uid &&
+        data.novelId is string && data.novelId.size() <= 128 &&
+        data.episodeId is string && data.episodeId.size() <= 128 &&
+        data.episodeNumber is number &&
+        data.progressSeconds is number &&
+        data.completed is bool;
+    }
+
+    function isValidWatchlist(data) {
+      return data.keys().hasAll(['userId', 'novelId']) &&
+        data.userId is string && data.userId == request.auth.uid &&
+        data.novelId is string && data.novelId.size() <= 128;
+    }
+
+    function isValidUnlocked(data) {
+      return data.keys().hasAll(['userId', 'novelId', 'episodeId', 'unlockedVia']) &&
+        data.userId is string && data.userId == request.auth.uid &&
+        data.novelId is string && data.novelId.size() <= 128 &&
+        data.episodeId is string && data.episodeId.size() <= 128 &&
+        (data.unlockedVia == 'reward_ad' || data.unlockedVia == 'vip' || data.unlockedVia == 'free_trial');
+    }
+
+    function isValidAdConfig(data) {
+      return data.keys().hasAll(['interstitialFrequency', 'bannersEnabled', 'rewardedAdsEnabled']) &&
+        data.interstitialFrequency is number &&
+        data.bannersEnabled is bool &&
+        data.rewardedAdsEnabled is bool;
+    }
+
+    // Collections
+    match /novels/{novelId} {
+      allow read: if true;
+      allow create, delete: if isAdmin() && isValidId(novelId) && (request.method == 'delete' || isValidNovel(incoming()));
+      allow update: if (isAdmin() && isValidId(novelId) && isValidNovel(incoming())) ||
+        (isValidId(novelId) && incoming().diff(existing()).affectedKeys().hasOnly(['views', 'likesCount']) && incoming().views is number);
+
+      match /episodes/{episodeId} {
+        allow read: if true;
+        allow create, delete: if isAdmin() && isValidId(novelId) && isValidId(episodeId) && (request.method == 'delete' || isValidEpisode(incoming()));
+        allow update: if (isAdmin() && isValidId(novelId) && isValidId(episodeId) && isValidEpisode(incoming())) ||
+          (isValidId(novelId) && isValidId(episodeId) && incoming().diff(existing()).affectedKeys().hasOnly(['views', 'likesCount']) && incoming().views is number);
+
+        match /comments/{commentId} {
+          allow read: if resource.data.isHidden == false || isAdmin();
+          allow create: if isSignedIn() && isValidId(commentId) && isValidComment(incoming());
+          allow update: if (isAdmin() && isValidComment(incoming())) ||
+            (isSignedIn() && existing().userId == request.auth.uid && incoming().userId == request.auth.uid &&
+             incoming().diff(existing()).affectedKeys().hasOnly(['text']) &&
+             incoming().text is string && incoming().text.size() <= 1000);
+          allow delete: if isAdmin() || (isSignedIn() && existing().userId == request.auth.uid);
+        }
+      }
+    }
+
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+
+      match /progress/{novelId} {
+        allow read: if isOwner(userId);
+        allow create, update: if isOwner(userId) && isValidId(userId) && isValidId(novelId) && isValidProgress(incoming());
+        allow delete: if isOwner(userId);
+      }
+
+      match /watchlist/{novelId} {
+        allow read: if isOwner(userId);
+        allow create, update: if isOwner(userId) && isValidId(userId) && isValidId(novelId) && isValidWatchlist(incoming());
+        allow delete: if isOwner(userId);
+      }
+
+      match /unlockedEpisodes/{unlockedId} {
+        allow read: if isOwner(userId);
+        allow create, update: if isOwner(userId) && isValidId(userId) && isValidId(unlockedId) && isValidUnlocked(incoming());
+        allow delete: if isOwner(userId);
+      }
+    }
+
+    match /config/{configDoc} {
+      allow read: if true;
+      allow write: if isAdmin() && isValidId(configDoc) && isValidAdConfig(incoming());
+    }
+
+    match /auditLogs/{logId} {
+      allow read: if isAdmin() && isValidId(logId);
+      allow create: if isAdmin() && isValidId(logId);
+    }
+
+    match /admins/{adminId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+  }
+}
