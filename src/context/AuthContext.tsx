@@ -10,6 +10,10 @@ import {
   testFirestoreConnection 
 } from '../lib/firebase';
 
+export const ADMIN_EMAILS = [
+  'reinatorrez001@gmail.com',
+];
+
 interface AuthContextType {
   user: User | null;
   token: string | null;
@@ -26,15 +30,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [adminBypass, setAdminBypass] = useState<boolean>(() => {
-    try {
-      return localStorage.getItem('novelastream_admin_mode') === 'true';
-    } catch {
-      return false;
-    }
-  });
 
   useEffect(() => {
+    // Clear any legacy client-side admin bypasses permanently
+    try {
+      localStorage.removeItem('novelastream_admin_mode');
+    } catch (e) {
+      console.error(e);
+    }
+
     // Validate Firestore connection on boot
     testFirestoreConnection();
 
@@ -76,25 +80,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await logOut();
     setUser(null);
     setToken(null);
+    try {
+      localStorage.removeItem('novelastream_admin_mode');
+    } catch {}
   };
 
-  const toggleAdminBypass = (enable?: boolean) => {
-    setAdminBypass((prev) => {
-      const next = enable !== undefined ? enable : !prev;
-      try {
-        localStorage.setItem('novelastream_admin_mode', next ? 'true' : 'false');
-      } catch (e) {
-        console.error(e);
-      }
-      return next;
-    });
+  // Safe no-op kept strictly for interface backwards compatibility
+  const toggleAdminBypass = (_enable?: boolean) => {
+    // No-op: bypass disabled permanently for security
   };
 
-  // Check if current user is admin
-  const isAdmin = adminBypass || !!(user && (
-    user.email === ADMIN_EMAIL ||
-    user.email?.toLowerCase().includes('admin')
-  ));
+  // Strict administrator verification: User MUST be signed in with the authorized administrator email
+  const isAdmin = !!(
+    user && 
+    user.email && 
+    (user.email.toLowerCase().trim() === ADMIN_EMAIL.toLowerCase().trim() ||
+     ADMIN_EMAILS.map(e => e.toLowerCase().trim()).includes(user.email.toLowerCase().trim()))
+  );
 
   return (
     <AuthContext.Provider value={{ user, token, isAdmin, isLoading, signIn, signOutUser, toggleAdminBypass }}>

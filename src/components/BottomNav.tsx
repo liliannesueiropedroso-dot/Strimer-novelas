@@ -47,7 +47,17 @@ export const BottomNav: React.FC = () => {
           <span className="text-[10px] font-bold">Mi lista</span>
         </button>
 
-        {isAdmin ? (
+        <button
+          onClick={() => setCurrentTab('profile')}
+          className={`flex flex-col items-center gap-1 py-1 px-3 transition-colors ${
+            currentTab === 'profile' ? 'text-[#FF5A5F]' : 'text-[#A7B0C0] hover:text-[#F7F7FA]'
+          }`}
+        >
+          <User className="w-5 h-5" />
+          <span className="text-[10px] font-medium">Perfil</span>
+        </button>
+
+        {isAdmin && (
           <button
             onClick={() => setCurrentTab('admin')}
             className={`flex flex-col items-center gap-1 py-1 px-3 transition-colors ${
@@ -56,16 +66,6 @@ export const BottomNav: React.FC = () => {
           >
             <Shield className="w-5 h-5" />
             <span className="text-[10px] font-bold">Admin</span>
-          </button>
-        ) : (
-          <button
-            onClick={() => setCurrentTab('profile')}
-            className={`flex flex-col items-center gap-1 py-1 px-3 transition-colors ${
-              currentTab === 'profile' ? 'text-[#FF5A5F]' : 'text-[#A7B0C0] hover:text-[#F7F7FA]'
-            }`}
-          >
-            <User className="w-5 h-5" />
-            <span className="text-[10px] font-medium">Perfil</span>
           </button>
         )}
       </div>

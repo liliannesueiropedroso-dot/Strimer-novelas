@@ -16,7 +16,7 @@ import { useAuth } from '../context/AuthContext';
 import { useApp } from '../context/AppContext';
 
 export const Navbar: React.FC = () => {
-  const { user, isAdmin, signIn, signOutUser, toggleAdminBypass } = useAuth();
+  const { user, isAdmin, signIn, signOutUser } = useAuth();
   const { currentTab, setCurrentTab, watchlist, setSearchFilter, searchFilter } = useApp();
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showSearchModal, setShowSearchModal] = useState(false);
@@ -212,18 +212,19 @@ export const Navbar: React.FC = () => {
                   Mi Lista ({watchlist.length})
                 </button>
 
-                {/* Direct Admin Access Button */}
-                <button
-                  onClick={() => {
-                    toggleAdminBypass(true);
-                    setCurrentTab('admin');
-                    setShowProfileMenu(false);
-                  }}
-                  className="w-full text-left flex items-center gap-2.5 px-3 py-2 text-xs text-[#C084FC] hover:bg-purple-500/10 rounded-xl transition-colors font-bold"
-                >
-                  <Shield className="w-3.5 h-3.5" />
-                  Panel Administrativo
-                </button>
+                {/* Direct Admin Access Button - ONLY VISIBLE WHEN ADMIN USER IS SIGNED IN */}
+                {isAdmin && (
+                  <button
+                    onClick={() => {
+                      setCurrentTab('admin');
+                      setShowProfileMenu(false);
+                    }}
+                    className="w-full text-left flex items-center gap-2.5 px-3 py-2 text-xs text-[#C084FC] hover:bg-purple-500/10 rounded-xl transition-colors font-bold"
+                  >
+                    <Shield className="w-3.5 h-3.5" />
+                    Panel Administrativo
+                  </button>
+                )}
 
                 <div className="my-1 border-t border-white/5" />
 
